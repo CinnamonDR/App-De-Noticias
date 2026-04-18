@@ -1,0 +1,96 @@
+:root {
+    --bg-dark: #050505;
+    --card-bg: #111111;
+    --yellow-neon: #f4d03f;
+    --text-silver: #cccccc;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: white;
+    font-family: 'Titillium Web', sans-serif;
+}
+
+.main-content {
+    margin-top: 100px;
+}
+
+.navbar {
+    background-color: #000 !important;
+    border-bottom: 2px solid var(--yellow-neon);
+    box-shadow: 0 0 20px rgba(244, 208, 63, 0.2);
+}
+
+.navbar-brand {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--yellow-neon) !important;
+}
+
+/* Tarjetas Oscuras con Borde Amarillo */
+.news-card {
+    background-color: var(--card-bg);
+    border: 2px solid var(--yellow-neon) !important;
+    border-radius: 0;
+    height: 100%;
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.news-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 0 25px rgba(244, 208, 63, 0.4);
+}
+
+/* Enlace envolvente de la noticia */
+.card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    flex-grow: 1;
+}
+
+.card-img-top {
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 2px solid var(--yellow-neon);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-title {
+    color: var(--yellow-neon);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+}
+
+.card-text {
+    color: var(--text-silver);
+    font-size: 0.9rem;
+}
+
+/* Botones */
+.btn-download-main {
+    background-color: var(--yellow-neon);
+    color: black;
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: bold;
+    border-radius: 0;
+}
+
+.btn-download-main:hover {
+    background-color: white;
+    color: black;
+}
+
+.card-footer {
+    background: transparent;
+    border: none;
+    padding: 1.5rem;
+    padding-top: 0;
+}
+
+.badge { font-size: 0.7rem; }
