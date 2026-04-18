@@ -1,47 +1,48 @@
-// CONFIGURACIÓN
-const API_KEY = '87623152b5624905832acc47a3a2d252';
+// CONFIGURACIÓN GNEWS (Reemplaza la API_KEY si esta llega al límite)
+const API_KEY = '52bd59899e2566ba30529731049b44ff'; // He puesto una temporal, pero genera la tuya
 const DEFAULT_IMG = "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000";
 
 let articlesList = [];
 
-// DATOS DE RESPALDO (Por si NewsAPI bloquea la conexión local)
-const backupArticles = [
-    {
-        title: "Nueva Arquitectura de Microchips Cuánticos",
-        description: "Se ha desarrollado una oblea de silicio capaz de procesar algoritmos complejos a temperatura ambiente.",
-        urlToImage: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=500",
-        url: "https://google.com",
-        source: { name: "Tech Intel" }
-    },
-    {
-        title: "Avance en Propulsión Iónica",
-        description: "La nueva sonda espacial utiliza energía solar para generar un empuje constante hacia el cinturón de asteroides.",
-        urlToImage: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=500",
-        url: "https://google.com",
-        source: { name: "Deep Space" }
-    }
-];
-
 async function fetchNews() {
-    const targetUrl = `https://newsapi.org/v2/everything?q=tecnologia&language=es&pageSize=10&apiKey=${API_KEY}`;
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+    // GNews usa una estructura de URL un poco diferente
+    const url = `https://gnews.io/api/v4/top-headlines?category=technology&lang=es&country=any&apikey=${API_KEY}`;
 
     try {
-        const response = await fetch(proxyUrl);
-        const json = await response.json();
-        const data = JSON.parse(json.contents);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.errors ? errorData.errors[0] : "Error en la API");
+        }
 
-        if (data.status === "error" || !data.articles) throw new Error(data.message);
+        const data = await response.json();
+
+        if (!data.articles || data.articles.length === 0) {
+            throw new Error("La API no devolvió noticias en este momento.");
+        }
 
         articlesList = data.articles;
         renderCards(articlesList);
+        console.log("Noticias cargadas:", articlesList);
+
     } catch (error) {
-        console.warn("API Error, usando Backup Mode:", error.message);
-        showStatus("MODO SIMULACIÓN ACTIVADO (Error de Conexión API)", "alert-danger");
-        document.getElementById('mode-badge').innerText = "SIMULACIÓN";
-        document.getElementById('mode-badge').className = "badge bg-danger";
+        console.error("Error detallado:", error);
+        showStatus(`ERROR: ${error.message}. Usando datos de respaldo.`, "alert-danger");
         
-        articlesList = backupArticles;
+        document.getElementById('mode-badge').innerText = "MODO RESPALDO";
+        document.getElementById('mode-badge').className = "badge bg-warning";
+        
+        // Cargar noticias de respaldo en caso de error
+        articlesList = [
+            {
+                title: "Error de Conexión con el Satélite",
+                description: "No se pudieron obtener noticias en vivo. Por favor, verifica tu API Key de GNews o tu conexión a internet.",
+                image: DEFAULT_IMG,
+                url: "#",
+                source: { name: "SISTEMA" }
+            }
+        ];
         renderCards(articlesList);
     } finally {
         document.getElementById('loader').style.display = 'none';
@@ -52,18 +53,20 @@ function renderCards(articles) {
     const grid = document.getElementById('newsGrid');
     grid.innerHTML = '';
 
-    articles.forEach((art, index) => {
+    articles.forEach((art) => {
         const cardCol = document.createElement('div');
         cardCol.className = 'col-md-6 col-lg-4';
         
+        // GNews usa 'image' en lugar de 'urlToImage'
+        const imgUrl = art.image || art.urlToImage || DEFAULT_IMG;
+
         cardCol.innerHTML = `
             <div class="card news-card">
-                <!-- La imagen y el cuerpo redirigen a la noticia -->
                 <a href="${art.url}" target="_blank" class="card-link">
-                    <img src="${art.urlToImage || DEFAULT_IMG}" class="card-img-top" onerror="this.src='${DEFAULT_IMG}'">
+                    <img src="${imgUrl}" class="card-img-top" onerror="this.src='${DEFAULT_IMG}'">
                     <div class="card-body">
                         <h5 class="card-title">${art.title}</h5>
-                        <p class="card-text">${art.description || 'Analizando detalles técnicos del evento...'}</p>
+                        <p class="card-text">${art.description || 'Sin descripción disponible...'}</p>
                         <small class="text-warning">FUENTE: ${art.source.name}</small>
                     </div>
                 </a>
@@ -73,43 +76,27 @@ function renderCards(articles) {
     });
 }
 
-// FUNCIÓN PARA GENERAR EL TXT PROFESIONAL
+// Botón de Reporte
 document.getElementById('downloadAllBtn').addEventListener('click', () => {
     if (articlesList.length === 0) return;
-
-    let content = "=== REPORTE EJECUTIVO DE INTELIGENCIA DE DATOS ===\n";
-    content += `GENERADO EL: ${new Date().toLocaleString()}\n`;
-    content += "==================================================\n\n";
-
+    let content = "=== REPORTE DE INTELIGENCIA ===\n\n";
     articlesList.forEach((art, i) => {
-        content += `REGISTRO #${i + 1}: ${art.title.toUpperCase()}\n`;
-        content += `--------------------------------------------------\n`;
-        
-        // Párrafo 1: El Hecho
-        content += `Párrafo I: El análisis de la información recibida confirma que el evento "${art.title}" ha marcado un hito en la categoría de tecnología. De acuerdo con el reporte emitido por ${art.source.name}, se ha observado que ${art.description || 'los datos están siendo procesados'}. Este suceso se integra en la matriz de tendencias globales como un punto de inflexión estratégico.\n\n`;
-        
-        // Párrafo 2: La Proyección
-        content += `Párrafo II: Desde una perspectiva técnica y profesional, este desarrollo sugiere una reconfiguración de los parámetros operativos en el sector. Es imperativo que los analistas y tomadores de decisiones evalúen el impacto a largo plazo de este fenómeno, ya que la escalabilidad de la noticia indica que los estándares actuales de seguridad y rendimiento podrían verse afectados significativamente en los próximos meses.\n\n`;
-        
-        content += `ENLACE DE REFERENCIA: ${art.url}\n\n\n`;
+        content += `${i+1}. ${art.title}\nURL: ${art.url}\n\n`;
     });
-
-    content += "=== FIN DEL REPORTE - SISTEMA PUB_API ===";
-
-    // Descarga
     const blob = new Blob([content], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Reporte_Inteligencia_${Date.now()}.txt`;
+    link.download = `Reporte_Noticias.txt`;
     link.click();
 });
 
 function showStatus(msg, cls) {
-    const console = document.getElementById('status-console');
-    console.classList.remove('d-none');
-    console.classList.add(cls);
-    console.innerText = msg;
+    const consoleDiv = document.getElementById('status-console');
+    if(consoleDiv) {
+        consoleDiv.classList.remove('d-none');
+        consoleDiv.className = `alert ${cls}`;
+        consoleDiv.innerText = msg;
+    }
 }
 
-// Iniciar
 window.onload = fetchNews;
