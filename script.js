@@ -1,30 +1,32 @@
-// CONFIGURACIÓN: GNEWS API (NOTICIAS EN ESPAÑOL)
-const API_KEY = '52bd59899e2566ba30529731049b44ff'; 
+// CONFIGURACIÓN NEWSDATA.IO
+const API_KEY = 'pub_99ec69909bba4c20a033bc6d161abe71';
 const DEFAULT_IMG = "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000";
 
 let articlesList = [];
 
 async function fetchNews() {
-    // Parámetros: Tecnología, Idioma Español, País cualquiera
-    const targetUrl = `https://gnews.io/api/v4/top-headlines?category=technology&lang=es&country=any&apikey=${API_KEY}`;
-    
-    // Usamos corsproxy.io que es el más rápido para evitar el bloqueo de GitHub Pages
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+    // Hemos quitado "q=tecnologia" para que no sea tan restrictivo y nos devuelva siempre 10 noticias
+    // Ahora busca simplemente: Categoría Tecnología + Idioma Español
+    const url = `https://newsdata.io/api/1/news?apikey=${API_KEY}&language=es&category=technology`;
 
     try {
-        const response = await fetch(proxyUrl);
+        const response = await fetch(url);
         
-        if (!response.ok) throw new Error("Límite de API alcanzado o error de servidor.");
+        if (!response.ok) {
+            throw new Error(`Error de comunicación: ${response.status}`);
+        }
 
         const data = await response.json();
 
-        if (!data.articles || data.articles.length === 0) {
-            throw new Error("No hay noticias disponibles en este momento.");
+        if (!data.results || data.results.length === 0) {
+            throw new Error("No se encontraron registros en la base de datos.");
         }
 
-        articlesList = data.articles;
+        // Guardamos los resultados (NewsData suele dar 10 por página)
+        articlesList = data.results.slice(0, 10);
+        
         renderCards(articlesList);
-        console.log("DATOS RECIBIDOS EN ESPAÑOL");
+        console.log(`Sincronización exitosa: ${articlesList.length} nodos cargados.`);
 
     } catch (error) {
         console.error("Error:", error.message);
@@ -33,13 +35,13 @@ async function fetchNews() {
         document.getElementById('mode-badge').innerText = "MODO RESPALDO";
         document.getElementById('mode-badge').className = "badge bg-danger";
         
-        // Datos de respaldo si la API falla
+        // Backup por si la API falla
         articlesList = [{
-            title: "Error de Sincronización",
-            description: "No se pudieron obtener noticias en vivo. Es posible que el límite diario de la API se haya agotado.",
-            image: DEFAULT_IMG,
-            url: "#",
-            source: { name: "CENTRAL_PUB_API" }
+            title: "Fallo de enlace con NewsData",
+            description: "No se pudieron obtener los registros en vivo. Es posible que los créditos de la API se hayan agotado.",
+            image_url: DEFAULT_IMG,
+            link: "#",
+            source_id: "SISTEMA_PUB"
         }];
         renderCards(articlesList);
     } finally {
@@ -51,21 +53,22 @@ async function fetchNews() {
 function renderCards(articles) {
     const grid = document.getElementById('newsGrid');
     if (!grid) return;
-    grid.innerHTML = '';
+    grid.innerHTML = ''; // Limpiamos el grid antes de añadir las 10
 
     articles.forEach((art) => {
         const cardCol = document.createElement('div');
         cardCol.className = 'col-md-6 col-lg-4';
-        const imgUrl = art.image || art.urlToImage || DEFAULT_IMG;
+        
+        const imgUrl = art.image_url || DEFAULT_IMG;
 
         cardCol.innerHTML = `
             <div class="card news-card">
-                <a href="${art.url}" target="_blank" class="card-link">
+                <a href="${art.link}" target="_blank" class="card-link">
                     <img src="${imgUrl}" class="card-img-top" onerror="this.src='${DEFAULT_IMG}'">
                     <div class="card-body">
                         <h5 class="card-title">${art.title}</h5>
-                        <p class="card-text">${art.description || 'Analizando detalles técnicos del evento...'}</p>
-                        <small class="text-warning">FUENTE: ${art.source.name}</small>
+                        <p class="card-text">${art.description ? art.description.substring(0, 100) + '...' : 'Analizando detalles técnicos del evento...'}</p>
+                        <small class="text-warning">FUENTE: ${art.source_id.toUpperCase()}</small>
                     </div>
                 </a>
             </div>
@@ -75,30 +78,30 @@ function renderCards(articles) {
 }
 
 // ============================================================
-// SISTEMA DE REDACCIÓN PROFESIONAL (2 PÁRRAFOS)
+// REPORTE TXT: REDACCIÓN DE 2 PÁRRAFOS POR NOTICIA
 // ============================================================
 document.getElementById('downloadAllBtn').addEventListener('click', () => {
     if (articlesList.length === 0) return;
 
-    let content = "=== REPORTE EJECUTIVO DE INTELIGENCIA DE DATOS (ES) ===\n";
-    content += `GENERADO EL: ${new Date().toLocaleString()}\n`;
-    content += "======================================================\n\n";
+    let content = "=== REPORTE EJECUTIVO DE INTELIGENCIA DE DATOS ===\n";
+    content += `FECHA: ${new Date().toLocaleString()}\n`;
+    content += `CANTIDAD DE REGISTROS: ${articlesList.length}\n`;
+    content += "==================================================\n\n";
 
     articlesList.forEach((art, i) => {
-        const fuente = art.source.name || "Fuentes Globales";
-        const resumen = art.description || "los detalles técnicos están bajo análisis de campo por la central";
+        const fuente = art.source_id ? art.source_id.toUpperCase() : "AGENCIA EXTERNA";
+        const resumen = art.description || "información técnica bajo análisis de campo";
 
         content += `REGISTRO #${i + 1}: ${art.title.toUpperCase()}\n`;
-        content += `------------------------------------------------------\n`;
+        content += `--------------------------------------------------\n`;
         
-        // Párrafo 1: Análisis del Hecho
-        content += `Párrafo I: Tras el procesamiento de los datos recolectados, se confirma que el evento "${art.title}" ha sido validado por la agencia ${fuente}. La investigación preliminar indica que ${resumen}. Este suceso se registra como un punto de inflexión crítico en la cronología tecnológica actual, impactando directamente en los flujos de información analizados por nuestra terminal.\n\n`;
+        // PÁRRAFO I: Análisis situacional
+        content += `Párrafo I: Tras el procesamiento de los datos recolectados, se confirma que el evento "${art.title}" ha sido validado por la agencia ${fuente}. La información indica que ${resumen}. Este suceso se registra como un punto de inflexión crítico en la cronología tecnológica global, impactando en los flujos de información analizados.\n\n`;
         
-        // Párrafo 2: Proyección y Riesgo
-        content += `Párrafo II: Desde una perspectiva técnica y profesional, este desarrollo sugiere una reconfiguración de los parámetros operativos en el sector. Es imperativo que los analistas evalúen el impacto estratégico de este fenómeno, ya que la escalabilidad de la noticia indica que los estándares actuales podrían verse afectados significativamente en los próximos meses.\n\n`;
+        // PÁRRAFO II: Proyección técnica
+        content += `Párrafo II: Desde una perspectiva profesional, este desarrollo sugiere una reconfiguración de los parámetros en el sector tecnológico. Es imperativo evaluar el impacto estratégico a largo plazo, ya que la escalabilidad de la noticia indica que los estándares actuales de seguridad podrían verse afectados en los próximos meses.\n\n`;
         
-        content += `ENLACE DE REFERENCIA: ${art.url}\n`;
-        content += `ESTADO: DATOS ARCHIVADOS\n`;
+        content += `URL DE REFERENCIA: ${art.link}\n`;
         content += `\n\n`;
     });
 
@@ -107,9 +110,8 @@ document.getElementById('downloadAllBtn').addEventListener('click', () => {
     const blob = new Blob([content], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Reporte_PUB_API_${Date.now()}.txt`;
+    link.download = `Reporte_Inteligencia_10.txt`;
     link.click();
-    URL.revokeObjectURL(link.href);
 });
 
 function showStatus(msg, cls) {
