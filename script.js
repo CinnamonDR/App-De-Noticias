@@ -1,66 +1,59 @@
-// 1. CONFIGURACIÓN
-// NOTA: Si este código da error, es porque esta API KEY ya llegó a su límite de 100 noticias.
-// Regístrate en gnews.io y pon tu propia clave aquí.
-const API_KEY = '52bd59899e2566ba30529731049b44ff'; 
+// 1. NUEVA CONFIGURACIÓN (Si falla, regístrate en gnews.io para obtener una nueva)
+const API_KEY = '53416b9b3986915004f165e3b5e43b1c'; 
 const DEFAULT_IMG = "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000";
 
 let articlesList = [];
 
 async function fetchNews() {
-    // La URL original de GNews
+    // Intentamos primero con un proxy diferente (CORSProxy.io)
     const targetUrl = `https://gnews.io/api/v4/top-headlines?category=technology&lang=es&country=any&apikey=${API_KEY}`;
-    
-    // La envolvemos en un Proxy para saltar el error de CORS en GitHub Pages
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
 
     try {
         const response = await fetch(proxyUrl);
         
-        if (!response.ok) throw new Error("Error al conectar con el proxy.");
-
-        const json = await response.json();
-        
-        // AllOrigins devuelve los datos dentro de una propiedad llamada 'contents' como texto
-        const data = JSON.parse(json.contents);
-
-        if (data.errors) {
-            throw new Error(data.errors[0]);
+        if (!response.ok) {
+            if (response.status === 403) throw new Error("Límite de API agotado o bloqueado.");
+            throw new Error(`Error del servidor: ${response.status}`);
         }
 
+        const data = await response.json();
+
         if (!data.articles || data.articles.length === 0) {
-            throw new Error("No hay noticias disponibles (Límite de API alcanzado).");
+            throw new Error("La API no devolvió artículos.");
         }
 
         articlesList = data.articles;
         renderCards(articlesList);
+        console.log("Noticias sincronizadas correctamente.");
 
     } catch (error) {
-        console.error("Error detectado:", error.message);
+        console.error("Error detallado:", error);
         showStatus(`SISTEMA: ${error.message}`, "alert-danger");
         
         document.getElementById('mode-badge').innerText = "MODO RESPALDO";
         document.getElementById('mode-badge').className = "badge bg-danger";
         
-        // Datos de respaldo por si todo falla
+        // DATOS DE RESPALDO (Esto aparecerá si la API falla)
         articlesList = [
             {
-                title: "Error de Seguridad CORS o Límite de API",
-                description: "GitHub Pages ha bloqueado la conexión o has excedido las 100 noticias diarias. Por favor, intenta de nuevo mañana o usa una API Key diferente.",
+                title: "Inestabilidad en el Enlace Satelital",
+                description: "Se ha detectado un bloqueo de seguridad o exceso de peticiones en la cuenta de GNews. El sistema entrará en modo de datos históricos hasta que se restablezca la conexión.",
                 image: DEFAULT_IMG,
                 url: "https://gnews.io/",
-                source: { name: "SISTEMA" }
+                source: { name: "CENTRAL_PUB_API" }
             }
         ];
         renderCards(articlesList);
     } finally {
         const loader = document.getElementById('loader');
-        if(loader) loader.style.display = 'none';
+        if (loader) loader.style.display = 'none';
     }
 }
 
 function renderCards(articles) {
     const grid = document.getElementById('newsGrid');
-    if(!grid) return;
+    if (!grid) return;
     grid.innerHTML = '';
 
     articles.forEach((art) => {
@@ -74,7 +67,7 @@ function renderCards(articles) {
                     <img src="${imgUrl}" class="card-img-top" onerror="this.src='${DEFAULT_IMG}'">
                     <div class="card-body">
                         <h5 class="card-title">${art.title}</h5>
-                        <p class="card-text">${art.description || 'Analizando detalles técnicos del evento...'}</p>
+                        <p class="card-text">${art.description || 'Analizando detalles técnicos...'}</p>
                         <small class="text-warning">FUENTE: ${art.source.name}</small>
                     </div>
                 </a>
@@ -84,7 +77,7 @@ function renderCards(articles) {
     });
 }
 
-// BOTÓN DE DESCARGA (2 PÁRRAFOS)
+// REDACCIÓN DE 2 PÁRRAFOS PARA EL REPORTE
 document.getElementById('downloadAllBtn').addEventListener('click', () => {
     if (articlesList.length === 0) return;
 
@@ -94,24 +87,25 @@ document.getElementById('downloadAllBtn').addEventListener('click', () => {
 
     articlesList.forEach((art, i) => {
         const fuente = art.source.name || "Fuentes Globales";
-        
+        const desc = art.description || "los detalles técnicos están bajo análisis de campo";
+
         content += `REGISTRO #${i + 1}: ${art.title.toUpperCase()}\n`;
         content += `--------------------------------------------------\n`;
-        content += `Párrafo I: Tras el procesamiento de los datos recolectados, se confirma que el evento "${art.title}" ha sido validado por la agencia ${fuente}. La investigación preliminar indica que ${art.description || 'los detalles están bajo análisis'}. Este suceso se registra como un punto de inflexión crítico en la cronología tecnológica actual.\n\n`;
-        content += `Párrafo II: Desde una perspectiva técnica y profesional, este desarrollo sugiere una reconfiguración de los parámetros operativos en el sector. Es imperativo que los analistas evalúen el impacto estratégico de este fenómeno, ya que los estándares actuales podrían verse afectados significativamente en los próximos meses.\n\n`;
+        content += `Párrafo I: Tras el procesamiento de los datos recolectados, se confirma que el evento "${art.title}" ha sido validado por la agencia ${fuente}. La investigación preliminar indica que ${desc}. Este suceso se registra como un punto de inflexión crítico en la cronología tecnológica actual.\n\n`;
+        content += `Párrafo II: Desde una perspectiva técnica y profesional, este desarrollo sugiere una reconfiguración de los parámetros operativos en el sector. Es imperativo que los analistas evalúen el impacto estratégico de este fenómeno, ya que la escalabilidad indica que los estándares actuales podrían verse afectados significativamente.\n\n`;
         content += `ENLACE: ${art.url}\n\n`;
     });
 
     const blob = new Blob([content], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Reporte_Inteligencia.txt`;
+    link.download = `Reporte_PUB_API.txt`;
     link.click();
 });
 
 function showStatus(msg, cls) {
     const consoleDiv = document.getElementById('status-console');
-    if(consoleDiv) {
+    if (consoleDiv) {
         consoleDiv.classList.remove('d-none');
         consoleDiv.className = `alert ${cls}`;
         consoleDiv.innerText = msg;
